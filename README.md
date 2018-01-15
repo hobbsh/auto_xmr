@@ -28,7 +28,7 @@ Computer Configuration
 
 Look at mine.ps1 and devcon.ps1 for where everything should be.
 
-* xmr_stak installation in C:\auto_monero_\miner
+* xmr_stak installation in C:\auto_monero\miner
 * OverdrivenTool.exe in C:\auto_monero\overdriventool
 
 ### 4. Run mine.ps1
