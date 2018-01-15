@@ -3,7 +3,7 @@ Trying to automate as much of the Vega XMR mining shenanigans as possible
 
 If this helped you, consider donating. Thanks!
 
-XMR: 42TtmJxMEReSPiU39tUwFZ84KpFSpzdhuHstkzuTCipTdAuFqh7eMtk6b4zSLvfWZDA26aMKVTynYNVX19996DJx5uJugZm
+`XMR: 42TtmJxMEReSPiU39tUwFZ84KpFSpzdhuHstkzuTCipTdAuFqh7eMtk6b4zSLvfWZDA26aMKVTynYNVX19996DJx5uJugZm`
 
 ## Prerequisites
 * xmr_stak
