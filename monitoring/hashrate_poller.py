@@ -21,13 +21,13 @@ def main():
   raw_content = get_json(xmr_stak_url)
   json_data = json.loads(raw_content)
 
-  pool = json_data['connection']['pool']
+  pool = json_data['connection']['pool'].split(':')[0].replace('.','_')
   for metric_key, metrics in json_data.iteritems():
     if metric_key == 'connection':
       wanted = ['ping', 'uptime']
       for metric_name, value in metrics.iteritems():
 	if metric_name in wanted:
-	  metric_path = '%s.%s' % (metric_key, metric_name)
+	  metric_path = '%s.%s.%s' % (pool, metric_key, metric_name)
           send_graphite(metric_path, value)
     elif metric_key == 'hashrate':
       wanted = ['highest', 'threads', 'total']
@@ -36,14 +36,14 @@ def main():
 	if metric_name in wanted:
 	  if metric_name == 'threads':
 	    for index, thread in enumerate(value):
-              _metric_path = '%s.%s' % (metric_path, index)
+              _metric_path = '%s.%s.%s' % (pool, metric_path, index)
 	      hashrates = { 'ten_second': thread[0], 'sixty_second': thread[1], 'fifteen_minute': thread[2] }
 	      hashrate_send(hashrates, _metric_path)
           elif metric_name == 'total':
 	    hashrates = { 'ten_second': value[0], 'sixty_second': value[1], 'fifteen_minute': value[2] }
 	    hashrate_send(hashrates, metric_path)
 	  elif metric_name == 'highest':
-	    _metric_path = '%s.%s' % (metric_path, metric_name)
+	    _metric_path = '%s.%s.%s' % (pool, metric_path, metric_name)
 	    send_graphite(_metric_path, value)
     elif metric_key == 'results':
       wanted = ['avg_time', 'diff_current', 'hashes_total', 'shares_good', 'shares_total']
