@@ -6,61 +6,58 @@ import sys
 import json
 import socket
 import time
-from bs4 import BeautifulSoup
 
 # Set your carbon server's IP/port 
-debug = False
+debug = True
 carbon_server = "10.1.10.6"
 carbon_port = 2003
+miner_name = 'xmr-stak-worker'
 
 #Fill in your real miner IP and port
 def main():
   xmr_miner_ip = "YOUR MINER IP"
   xmr_miner_port = "PORT YOU EXPOSED HTTP ON IN config.txt"
-  xmr_stak_url = "http://%s:%s/h" % (xmr_miner_ip, xmr_miner_port)
-  raw_content = get_raw_page(xmr_stak_url)
-  hashrate_report =  parse_content(raw_content)
+  xmr_stak_url = "http://%s:%s/api.json" % (xmr_miner_ip, xmr_miner_port)
+  raw_content = get_json(xmr_stak_url)
+  json_data = json.loads(raw_content)
 
-  for thread_id, metrics in hashrate_report['threads'].iteritems():
-    for metric, value in metrics.iteritems():
-      metric_path = 'threads.%s.%s' % (thread_id, metric)
-      send_graphite(metric_path, value)
-      
-  for metric, value in hashrate_report['totals'].iteritems():
-    send_graphite(metric, value)
+  pool = json_data['connection']['pool']
+  for metric_key, metrics in json_data.iteritems():
+    if metric_key == 'connection':
+      wanted = ['ping', 'uptime']
+      for metric_name, value in metrics.iteritems():
+	if metric_name in wanted:
+	  metric_path = '%s.%s' % (metric_key, metric_name)
+          send_graphite(metric_path, value)
+    elif metric_key == 'hashrate':
+      wanted = ['highest', 'threads', 'total']
+      for metric_name, value in metrics.iteritems():
+        metric_path = '%s.%s' % (metric_key, metric_name)
+	if metric_name in wanted:
+	  if metric_name == 'threads':
+	    for index, thread in enumerate(value):
+              _metric_path = '%s.%s' % (metric_path, index)
+	      hashrates = { 'ten_second': thread[0], 'sixty_second': thread[1], 'fifteen_minute': thread[2] }
+	      hashrate_send(hashrates, _metric_path)
+          elif metric_name == 'total':
+	    hashrates = { 'ten_second': value[0], 'sixty_second': value[1], 'fifteen_minute': value[2] }
+	    hashrate_send(hashrates, metric_path)
+	  elif metric_name == 'highest':
+	    _metric_path = '%s.%s' % (metric_path, metric_name)
+	    send_graphite(_metric_path, value)
+    elif metric_key == 'results':
+      wanted = ['avg_time', 'diff_current', 'hashes_total', 'shares_good', 'shares_total']
+      for metric_name, value in metrics.iteritems():
+        if metric_name in wanted:
+	  metric_path = '%s.%s' % (metric_key, metric_name)
+          send_graphite(metric_path, value)
 
-  if debug:
-    print json.dumps(hashrate_report, sort_keys=True, indent=4)
+def hashrate_send(hashrates, metric_key):
+  for metric_name, value in hashrates.iteritems():
+    metric_path = '%s.%s' % (metric_key, metric_name)
+    send_graphite(metric_path, value)
 
-def parse_content(raw_content):
-  soup = BeautifulSoup(raw_content, 'html.parser')
-  hashrate_report = {}
-  hashrate_report['threads'] = {}
-  hashrate_report['totals'] = {}
-  for row in soup.find_all('tr')[1:]:
-    data = row.text.encode('utf-8').split()
-    if data[0] == 'Totals:':
-      hashrate_report['totals']['ten_sec_total'] = data[1]
-      hashrate_report['totals']['sixty_sec_total'] = data[2]
-      try:
-        hashrate_report['totals']['fifteen_min_total'] = data[3]
-      except:
-        print "No data for fifteen minute mark yet"
-    elif data[0] == 'Highest:':
-      hashrate_report['totals']['highest'] = data[1]
-    else:
-      thread_id = data[0]
-      hashrate_report['threads'][thread_id] = {}
-      hashrate_report['threads'][thread_id]['ten_sec_hashrate'] = data[1]
-      hashrate_report['threads'][thread_id]['sixty_sec_hashrate'] = data[2]
-      try:
-        hashrate_report['threads'][thread_id]['fifteen_min_hashrate'] = data[3]
-      except:
-        print "No data for fiften minute mark yet"
-        
-  return hashrate_report
-
-def get_raw_page(url):
+def get_json(url):
   req = requests.get(url)
   if req.status_code == 200:
     return req.text
@@ -69,7 +66,7 @@ def get_raw_page(url):
     sys.exit(1)
 
 def send_graphite(metric, metric_value):
-  metric_root = 'servers.electrozig.xmr_stak.hashrates'
+  metric_root = 'servers.%s.xmr_stak' % miner_name
   timestamp = int(time.time())
   message = "%s.%s %s %d\n" % (metric_root, metric, metric_value, timestamp)
   if debug:
