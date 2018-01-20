@@ -33,7 +33,7 @@ Function Test-RegistryValue {
 
 $registry_path_root = 'HKLM:\SYSTEM\ControlSet001\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}'
 $keys = ("EnableUlps", "EnableCrossfireAutoLink")
-$cards = ("0000", "0001", "0002", "0003")
+$cards = ("0000", "0001", "0002", "0003", "0004", "0005")
 $value = "0"
 foreach ($card in $cards) {
   foreach ($key in $keys) {
@@ -45,3 +45,5 @@ foreach ($card in $cards) {
     }
   }
 }
+
+$hack_flags = "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\PnP\Pci\"
