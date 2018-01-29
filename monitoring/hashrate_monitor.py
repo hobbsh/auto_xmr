@@ -49,6 +49,7 @@ def main():
         start_mining()
   else:
     logger.info("Current hashrate is %d - all good" % current_hashrate)
+    os.unlink(pidfile)
     sys.exit(1)
 
 def stop_process(proc_id):
