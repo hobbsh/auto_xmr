@@ -1,4 +1,11 @@
 #!/usr/bin/env python
+# Copyright Wylie Hobbs - 2018
+#
+# This script will SSH into your Windows 10 installation and restart xmr-stak 
+# if the hashrate drops below a certain threshold
+#
+# Requires SSH key auth to be setup and working in addition to a working clone of this repo
+
 
 import os
 import logging
@@ -18,27 +25,35 @@ logger.addHandler(handler)
 #When the total hashrate drops this amount, restart xmr-stak
 hash_threshold = 10000
 
-#Since this should be run from the host xmr-stak is run on, use localhost
+#Set restart threshold (in seconds) to  prevent restarting too frequently
+start_time = int(time.time())
+restart_threshold = 3600
+
+#The private IP of your xmr-stak host and xmr-stak http port
 xmr_stak_ip = "10.1.10.189"
 xmr_stak_port = "8080"
 powershell = r'C:\WINDOWS\system32\WindowsPowerShell\v1.0\Powershell.exe'
-debug = True
+autoxmr_path = r'C:\auto_monero'
 
-pid = str(os.getpid())
+#Do some pidfile stuff to prevent overlapping runs
 pidfile = "/tmp/hashrate_monitor.pid"
-
-if os.path.isfile(pidfile):
-  logger.info( "%s already exists, exiting" % pidfile )
-  sys.exit()
-
-file(pidfile, 'w').write(pid)
+set_pidfile()
 
 def main():
-  current_hashrate = get_hashrate()
+  last_run_time = get_last_run()
+  timediff = start_time - last_run_time
+
+  current_hashrate = get_api(path=('hashrate', 'total'))
+  uptime = get_api(path=('connection', 'uptime'))
 
   if not current_hashrate:
-    logger.info("xmr-stak is not running - starting mining")
-    start_mining()
+    if timediff < restart_threshold and uptime:
+      logger.info("xmr-stak hashrate dropped but we are restarting too frequently - timediff is only %s seconds" % timediff)
+      os.unlink(pidfile)
+      sys.exit(0)
+    else:
+      logger.info("xmr-stak is not running - starting mining")
+      start_mining()
 
   elif current_hashrate < hash_threshold:
     logger.info("Current hashrate is %d - restarting xmr-stak" % current_hashrate)
@@ -81,17 +96,20 @@ def parse_procline(raw, retval):
 
 def start_mining():
   "https://decoder.cloud/2017/02/03/bypassing-uac-from-a-remote-powershell-and-escalting-to-system/"
-  mine = r"C:\auto_monero\mine.ps1"
-  command = " -File %s -WindowStyle Hidden" % mine
+  mine = r"%s\mine.ps1" % autoxmr_path
+  command = " -File %s -WindowStyle Normal" % mine
 
   logger.info("Starting xmr-stak, then waiting 120s")
   run_remote_cmd(command, powershell)
-  time.sleep(120)
 
-  if get_process('xmr-stak') and get_hashrate() > hash_threshold:
+  while not get_api(path=('hashrate', 'total')):
+    time.sleep(5)
+
+  if get_process('xmr-stak'):
     logger.info("xmr-stak started successfully")
     kill_ssh()
     os.unlink(pidfile)
+    write_last_run()
     sys.exit(0)
   else:
     logger.info("Something didn't go right when starting xmr-stak, exiting")
@@ -100,9 +118,36 @@ def start_mining():
 def kill_ssh():
   logger.info("Killing outstanding SSH processes")
   os.system("kill `ps aux | grep 'mine.ps1' | grep -v grep | awk '{print $2}'`")
-  
-def get_hashrate():
+
+def set_pidfile():
+  pid = str(os.getpid())
+
+  if os.path.isfile(pidfile):
+    logger.info( "%s already exists, exiting" % pidfile )
+    sys.exit()
+
+  file(pidfile, 'w').write(pid)
+
+def get_last_run():
+  try:
+    with open('/tmp/hashrate_monitor_lastrun') as f: 
+      t = f.read()
+  except IOError:
+    write_last_run()
+    t = get_last_run()
+
+  return int(t)
+
+def write_last_run():
+  now = str(int(time.time()))
+  with open('/tmp/hashrate_monitor_lastrun', 'w') as f:
+    f.write(now)
+
+  f.close()
+
+def get_api(path=('a', 'b')):
   url = "http://%s:%s/api.json" % (xmr_stak_ip, xmr_stak_port)
+
   try:
     req = requests.get(url)
   except requests.ConnectionError, e:
@@ -111,10 +156,14 @@ def get_hashrate():
 
   if req.status_code == 200:
     data = json.loads(req.text)
-    total_hashrate = data['hashrate']['total']
-    return int(total_hashrate[0])
+    retval = reduce(dict.get, path, data)
+    if 'hashrate' in path:
+      return int(retval[0])
+    else:
+      return  retval
   else:
-    logger.info("Could not get a response from %s" % url)
+    logger.info("Something bad happened requesting a response from %s" % url)
+    return None
 
 def run_remote_cmd(cmd_args, cmd_path = ""):
   HOST = xmr_stak_ip
@@ -132,11 +181,16 @@ def run_remote_cmd(cmd_args, cmd_path = ""):
   if "mine.ps1" in cmd_args:
     return "Success"
   
-  (output, error) = ssh.communicate()
+  result = ssh.stdout.read()
+  print result
 
-  if not error:
-    return output
+  if result == []:
+    error = ssh.stderr.readlines()
+    print >>sys.stderr, "ERROR: %s" % error
+  else:
+    return result
 
 
 if __name__ == "__main__":
   main()
+
