@@ -16,18 +16,8 @@ import sys
 import json
 import time
 
-#Setup logging
-logging.basicConfig(level=logging.DEBUG)
-logPath = "/var/log"
-fileName = "hashrate_monitor"
-logFormatter = logging.Formatter("%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s")
-logger = logging.getLogger()
-fileHandler = logging.FileHandler("{0}/{1}.log".format(logPath, fileName))
-fileHandler.setFormatter(logFormatter)
-logger.addHandler(fileHandler)
-consoleHandler = logging.StreamHandler()
-consoleHandler.setFormatter(logFormatter)
-logger.addHandler(consoleHandler)
+# Set global logging variable
+global logger
 
 #When the total hashrate drops this amount, restart xmr-stak
 hash_threshold = 10000
@@ -46,7 +36,6 @@ autoxmr_path = r'C:\auto_xmr'
 
 #Do some pidfile stuff to prevent overlapping runs
 pidfile = "/tmp/hashrate_monitor.pid"
-set_pidfile()
 
 def main():
   last_run_time = get_last_run()
@@ -124,12 +113,10 @@ def start_mining():
 
   if get_process('xmr-stak'):
     logger.info("xmr-stak started successfully")
-    kill_ssh()
-    os.unlink(pidfile)
-    write_last_run()
-    sys.exit(0)
+    cleanup('success')
   else:
     logger.info("Something didn't go right when starting xmr-stak, exiting")
+    cleanup('crash')
     sys.exit(1)
 
 def kill_ssh():
@@ -230,10 +217,6 @@ def run_remote_cmd(cmd_args, cmd_path = ""):
                        stdout=subprocess.PIPE,
                        stderr=subprocess.PIPE)
 
-  #Bypass process communcation for the mine.ps1 case
-  if "mine.ps1" in cmd_args:
-    return "Success"
-  
   result = ssh.stdout.read()
 
   if result == []:
@@ -242,7 +225,25 @@ def run_remote_cmd(cmd_args, cmd_path = ""):
   else:
     return result
 
+def setup_logger():
+  #Set log path and log file name
+  logPath = "/var/log"
+  fileName = "hashrate_monitor.log"
+  logger = logging.getLogger()
+
+  logging.basicConfig(level=logging.DEBUG)
+  logFormatter = logging.Formatter("%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s")
+  fileHandler = logging.FileHandler("{0}/{1}".format(logPath, fileName))
+  fileHandler.setFormatter(logFormatter)
+
+  logger.addHandler(fileHandler)
+  consoleHandler = logging.StreamHandler()
+  consoleHandler.setFormatter(logFormatter)
+  logger.addHandler(consoleHandler)
+
+  return logger
 
 if __name__ == "__main__":
+  set_pidfile()
+  logger = setup_logger()
   main()
-
