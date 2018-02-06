@@ -1,5 +1,5 @@
 # auto_xmr
-Trying to automate as much of the Vega XMR mining shenanigans as possible. All the config files (amd.txt, OverdriveNTool.ini) in this repo are based on a 4x Vega rig (3x Vega FE and 1x Vega 64).
+Trying to automate as much of the Vega XMR mining shenanigans as possible. All the config files (amd.txt, OverdriveNTool.ini) in this repo are based on a 6x Vega rig (5x Vega FE and 1x Vega 64).
 
 This repo assumes you have everything else setup and working (i.e. drivers, device detection, etc).
 
