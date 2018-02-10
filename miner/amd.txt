@@ -18,11 +18,13 @@
     { "index" : 0, "intensity" : 2016, "worksize" : 8, "affine_to_cpu" : false, "strided_index" : true },
     { "index" : 0, "intensity" : 1736, "worksize" : 8, "affine_to_cpu" : false, "strided_index" : true },
     { "index" : 1, "intensity" : 2016, "worksize" : 8, "affine_to_cpu" : false, "strided_index" : true },
-    { "index" : 1, "intensity" : 1680, "worksize" : 8, "affine_to_cpu" : false, "strided_index" : true },
-    { "index" : 2, "intensity" : 1736, "worksize" : 8, "affine_to_cpu" : false, "strided_index" : true },
-    { "index" : 2, "intensity" : 1600, "worksize" : 8, "affine_to_cpu" : false, "strided_index" : true },
+    { "index" : 1, "intensity" : 1736, "worksize" : 8, "affine_to_cpu" : false, "strided_index" : true },
+    { "index" : 2, "intensity" : 1800, "worksize" : 8, "affine_to_cpu" : false, "strided_index" : true },
+    { "index" : 2, "intensity" : 1608, "worksize" : 8, "affine_to_cpu" : false, "strided_index" : true },
     { "index" : 3, "intensity" : 2016, "worksize" : 8, "affine_to_cpu" : false, "strided_index" : true },
     { "index" : 3, "intensity" : 1736, "worksize" : 8, "affine_to_cpu" : false, "strided_index" : true },
+    { "index" : 4, "intensity" : 2016, "worksize" : 8, "affine_to_cpu" : false, "strided_index" : true },
+    { "index" : 4, "intensity" : 1736, "worksize" : 8, "affine_to_cpu" : false, "strided_index" : true },
 ],
 
 /*

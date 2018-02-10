@@ -16,7 +16,7 @@
           Write-Host "Disable failed for $Device - Exiting"
           Exit
         }
-        Start-Sleep -s 12
+        Start-Sleep -s 5
       }
       ELSEIF($ToggleTo -eq 'enable'){
         $enabled = .\devcon.exe enable @$Device | Out-String
