@@ -56,6 +56,8 @@ Additional configuration - may or may not be related to your setup
 
 monitoring/hashrate_poller.py - can be used to poll the xmr_stak web interface and ship data to Graphite. Only tested on Ubuntu 16.04.
 
+![dashboard](https://i.imgur.com/iFUzzjG.png)
+
 ### Dealing with Vega Frontier Edition enable/disable
 
 This is what I had to do to get things setup (I followed Geek Mark's FE video on youtube with some changes):
